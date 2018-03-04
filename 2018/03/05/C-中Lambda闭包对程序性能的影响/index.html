@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.0.5" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.0.5">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.0.5">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.0.5">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.0.5" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '6.0.5',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  
+  <meta name="keywords" content="C#,Lambda闭包," />
+
+
+<meta name="description" content="本文以编译生成的IL代码为事实依据，探讨Lambda闭包对程序性能的影响，主要目的不是为了计较这么一点性能影响，而是抱以学习的目的，加深对Lambda闭包的理解。">
+<meta name="keywords" content="C#,Lambda闭包">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C#中Lambda闭包对程序性能的影响">
+<meta property="og:url" content="https://functionghw.github.io/2018/03/05/C-中Lambda闭包对程序性能的影响/index.html">
+<meta property="og:site_name" content="functionghw&#39;s blog">
+<meta property="og:description" content="本文以编译生成的IL代码为事实依据，探讨Lambda闭包对程序性能的影响，主要目的不是为了计较这么一点性能影响，而是抱以学习的目的，加深对Lambda闭包的理解。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-03-04T17:29:29.911Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="C#中Lambda闭包对程序性能的影响">
+<meta name="twitter:description" content="本文以编译生成的IL代码为事实依据，探讨Lambda闭包对程序性能的影响，主要目的不是为了计较这么一点性能影响，而是抱以学习的目的，加深对Lambda闭包的理解。">
+
+
+
+
+
+
+  <link rel="canonical" href="https://functionghw.github.io/2018/03/05/C-中Lambda闭包对程序性能的影响/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+  <title>C#中Lambda闭包对程序性能的影响 | functionghw's blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"> <div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">functionghw's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">立志成为真正程序员的码农，伪全栈，目前主要写C#</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+  
+
+
+
+ </div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://functionghw.github.io/2018/03/05/C-中Lambda闭包对程序性能的影响/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="functionghw">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="functionghw's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">C#中Lambda闭包对程序性能的影响</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-05T00:46:33+08:00">2018-03-05</time>
+            
+
+            
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本文以编译生成的IL代码为事实依据，探讨Lambda闭包对程序性能的影响，主要目的不是为了计较这么一点性能影响，而是抱以学习的目的，加深对Lambda闭包的理解。<br><a id="more"></a></p>
+<blockquote>
+<p> 如果觉得直接看IL有困难，可以试试.Net Reflector这款IL反编译软件，它可以从生成的程序集直接反编译成C#代码，尤其是它的一个亮点：可以选择反编译的C#版本，当你一路从C#5.0切换到C#1.0的时候，任何语法糖都会现原形。</p>
+</blockquote>
+<h2 id="Lambda表达式和委托"><a href="#Lambda表达式和委托" class="headerlink" title="Lambda表达式和委托"></a>Lambda表达式和委托</h2><p>Lambda表达式是匿名委托语法的进一步演化，本质上并无区别，在编译过程中都会生成一个匿名类型，这点可以通过查看生成的IL代码确认。如果有如下代码：<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        Action&lt;<span class="keyword">int</span>&gt; action = x =&gt; Console.WriteLine(x);</span><br><span class="line">        action(<span class="number">128</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>那么编译的IL通过再翻译成C#，大概是这样:<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 编译器生成类，类名是随便起的，真实情况会生成一种古怪的名字。</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">class</span> <span class="title">SomeGeneratedClass</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest_action</span>(<span class="params"><span class="keyword">int</span> x</span>)</span></span><br><span class="line"><span class="function">        </span>&#123;</span><br><span class="line">            Console.WriteLine(x);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">var</span> generatedClass = <span class="keyword">new</span> SomeGeneratedClass();</span><br><span class="line">        Action&lt;<span class="keyword">int</span>&gt; action = <span class="keyword">new</span> Action&lt;<span class="keyword">int</span>&gt;(generatedClass.RunTest_action);</span><br><span class="line">        action(<span class="number">128</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>不过，如果你有查看生成的IL，会发现真实的情况并不是这样。像上面这样，每次执行都创建一个SomeGeneratedClass实例，然后又创建一个委托实例，用完即丢，增加GC压力不说，还会拖慢速度，因此编译器会生成更加优化的代码。<br>生成的内部类型只包含一个方法，不存在任何字段属性，是无状态的对象，因此实际编译的时候，干脆不创建新的类型，而是直接创建一个私有静态方法，反正效果是等价的。同时，方法的执行结果只依赖于参数，可以认为是方法也是无状态的，所以连委托实例也变成静态字段，这样只需要创建一次就可以反复使用了。最终经过优化的代码就类似于下面的形式。<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 编译器生成方法</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">RunTest_action</span>(<span class="params"><span class="keyword">int</span> x</span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        Console.WriteLine(x);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 编译器生成字段</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Action&lt;<span class="keyword">int</span>&gt; generated_field;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        Action&lt;<span class="keyword">int</span>&gt; action = generated_filed ?? (generated_filed = <span class="keyword">new</span> Action&lt;<span class="keyword">int</span>&gt;(TestClass.RunTest_action));</span><br><span class="line">        action(<span class="number">128</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>通过这样优化，就减少了无用垃圾对象的产生，提高了运行速度。</p>
+<h2 id="Lambda闭包"><a href="#Lambda闭包" class="headerlink" title="Lambda闭包"></a>Lambda闭包</h2><p>当一个Lambda表达式中引用了在表达式外部外部定义的变量时，就会发生闭包。发生闭包时生成的类是有状态的，因此必须要创建新的类型。被闭包的这个变量可以是局部变量，也可以是类成员(例如字段或者属性)，这两种情况有些许差异，但大致原理相同。</p>
+<h3 id="局部变量闭包"><a href="#局部变量闭包" class="headerlink" title="局部变量闭包"></a>局部变量闭包</h3><p>比如，把之前的测试代码改成下面这样，把x变成局部变量。运行结果是一样的。<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> x = DateTime.Now.Second;</span><br><span class="line">        Action action = () =&gt; Console.WriteLine(x);</span><br><span class="line">        action();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>根据前面所说的，此时如果只生成一个私有静态方法，显然不够，因为x的声明在Lambda之外，生成的方法中没有x的声明。怎么办呢？有一个方法是把x也变成TestClass的静态成员，即私有静态变量x，然后在生成的代码中就可以使用x了。有没有感觉哪里不对？这样做显然太草率了，最明显的就是，局部变量每次调用都是独立的，而静态字段是所有实例共享的，一旦在多个线程上同时调用该方法，使用静态字段极可能出事故。</p>
+<p>回到最前面，我们说过之所以只生成一个私有静态方法，是优化后的结果。现在这种闭包的情况下，显然不好这么优化，那就按照优化前那样，生成一个类好了。这个方法依赖于局部变量x的值，也就是说方法是有状态的，那只需要在生成类的时候，把相关的依赖都打包放在一起不就行了，这可以通过给类增加状态字段实现。<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 编译器生成类</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">class</span> <span class="title">SomeGeneratedClass</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 给类加个状态</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">int</span> x;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 此时生成非静态方法</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest_action</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">        </span>&#123;</span><br><span class="line">            <span class="comment">// x即this.x</span></span><br><span class="line">            Console.WriteLine(x);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="comment">// 因为后续代码中没有使用到x，所以其实连局部变量也可以省掉</span></span><br><span class="line">        <span class="comment">// 这里为了说明意图保留。</span></span><br><span class="line">        <span class="keyword">int</span> x =  DateTime.Now.Second;</span><br><span class="line">        <span class="keyword">var</span> generatedClass = <span class="keyword">new</span> SomeGeneratedClass();</span><br><span class="line">        generatedClass.x = x;</span><br><span class="line">        </span><br><span class="line">        Action action = <span class="keyword">new</span> Action(generatedClass.RunTest_action);</span><br><span class="line">        action();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>每次执行都会使用新的实例，不会有静态字段的多线程问题。如果有多个局部变量，给生成的类增加状态即可。<br>再对比一下示例代码，简单的一点改动，生成的代码已经大不一样了。</p>
+<h3 id="同一个类的成员变量闭包"><a href="#同一个类的成员变量闭包" class="headerlink" title="同一个类的成员变量闭包"></a>同一个类的成员变量闭包</h3><p>继续修改我们的实例代码，这次把x的作用域再大一点，声明为类的字段。<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> x = DateTime.Now.Second;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        Action action = () =&gt; Console.WriteLine(<span class="keyword">this</span>.x);</span><br><span class="line">        action();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>显然这次也是发生了闭包，不过和局部变量的稍有不同，因为x是TestClass的字段，所以会把整个TestClass对象放到闭包类里。<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 编译器生成类</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">class</span> <span class="title">SomeGeneratedClass</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 给类加个状态</span></span><br><span class="line">        <span class="keyword">public</span> TestClass instance;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 此时生成非静态方法</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest_action</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">        </span>&#123;</span><br><span class="line">            Console.WriteLine(instance.x);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> x = DateTime.Now.Second;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">var</span> generatedClass = <span class="keyword">new</span> SomeGeneratedClass();</span><br><span class="line">        generatedClass.instance = <span class="keyword">this</span>;</span><br><span class="line">        </span><br><span class="line">        Action action = <span class="keyword">new</span> Action(generatedClass.RunTest_action);</span><br><span class="line">        action();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>看起来是这么回事儿，就是有点绕：在内部类里创建一个方法，又把this传递进去，就为了用一个字段x，岂不是多此一举。如果你查看生成的IL代码，会发现确实不是这样，生成的代码和反而和优化过的非闭包匿名委托很像，是一个私有非静态方法，注意是非静态。<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 编译器生成</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest_action</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        Console.WriteLine(<span class="keyword">this</span>.x);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> x = DateTime.Now.Second;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        Action action = <span class="keyword">new</span> Action(<span class="keyword">this</span>.RunTest_action);</span><br><span class="line">        action();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>因为闭包的字段恰好和创建委托的类是同一个，所以有了上面的优化结果，看起来更加合理。</p>
+<h3 id="跨类的成员变量闭包"><a href="#跨类的成员变量闭包" class="headerlink" title="跨类的成员变量闭包"></a>跨类的成员变量闭包</h3><p>如果被闭包的值来自于别的类型呢？比如像下面这样先创建一个辅助类型，再进行闭包。<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Foo</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">int</span> Bar&#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">var</span> foo = <span class="keyword">new</span> Foo();</span><br><span class="line">        foo.Bar = DateTime.Now.Second;</span><br><span class="line">        Action action = () =&gt; Console.WriteLine(foo.Bar);</span><br><span class="line">        action();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>通过查看生成的IL可以证明，这种情况下编译器就会按照我们最初想的那样，生成一个新的类型，把闭包属性所在的整个对象实例都放到新的类型中。<br><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 编译器生成类</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">class</span> <span class="title">SomeGeneratedClass</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 给类加个状态</span></span><br><span class="line">        <span class="keyword">public</span> Foo instance;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 此时生成非静态方法</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest_action</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">        </span>&#123;</span><br><span class="line">            Console.WriteLine(instance.Bar);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> x = DateTime.Now.Second;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">RunTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;   </span><br><span class="line">        <span class="keyword">var</span> foo = <span class="keyword">new</span> Foo();</span><br><span class="line">        foo.Bar = DateTime.Now.Second;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">var</span> generatedClass = <span class="keyword">new</span> SomeGeneratedClass();</span><br><span class="line">        generatedClass.instance = foo;</span><br><span class="line">        </span><br><span class="line">        Action action = <span class="keyword">new</span> Action(generatedClass.RunTest_action);</span><br><span class="line">        action();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="总结闭包对程序的影响"><a href="#总结闭包对程序的影响" class="headerlink" title="总结闭包对程序的影响"></a>总结闭包对程序的影响</h2><p>很显然，和没有闭包的情况相比，闭包在性能上有轻微的损失，主要体现在会有额外的临时对象被创建，这从代码上可以看出。</p>
+<p>除此之外，也有书上提到过<strong>闭包会影响对象的生命周期</strong>，不知道大家有没有看到过。<br>如果仔细分析一下闭包的三种情况，会发现第三种情况最明显，因为foo本来只是个局部变量，而闭包的存在，使得action对象对它有一条引用，如果action对象被一直被程序使用而不能回收，那么foo对象也会一直存在，即foo的生命周期被延长到和action一致了。</p>
+<p>再仔细思考一下第一种情况–局部变量的闭包，会发现在局部变量闭包的情况下，如果被闭包的局部变量不是一个值类型，而是一个引用类型，也会存在这种对象生命周期被延长的可能。</p>
+<p>第二种情况看似特殊，因为没有产生新的类型，但是也有这种风险，因为委托的是实例方法，所以委托对象本身是带有对上下文对象引用的，即当前的TestClass对象，使得其生命周期有被延长的可能。</p>
+<p>虽然通常情况下，闭包对生命周期的影响并无大碍，但也不排除某些极限情况下会造成问题，今天在这里指出并分析一下，他日如果遇到有关的魔法bug，说不定能用上呢。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C#</a>
+          
+            <a href="/tags/Lambda闭包/" rel="tag"># Lambda闭包</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">functionghw</p>
+              <p class="site-description motion-element" itemprop="description">立志成为真正程序员的码农，伪全栈，目前主要写C#</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">2</span>
+                    <span class="site-state-item-name">标签</span>
+                  
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Lambda表达式和委托"><span class="nav-number">1.</span> <span class="nav-text">Lambda表达式和委托</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Lambda闭包"><span class="nav-number">2.</span> <span class="nav-text">Lambda闭包</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#局部变量闭包"><span class="nav-number">2.1.</span> <span class="nav-text">局部变量闭包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#同一个类的成员变量闭包"><span class="nav-number">2.2.</span> <span class="nav-text">同一个类的成员变量闭包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#跨类的成员变量闭包"><span class="nav-number">2.3.</span> <span class="nav-text">跨类的成员变量闭包</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结闭包对程序的影响"><span class="nav-number">3.</span> <span class="nav-text">总结闭包对程序的影响</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">functionghw</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/theme-next/hexo-theme-next">NexT.Mist</a> v6.0.5</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.0.5"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.0.5"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.0.5"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.0.5"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.0.5"></script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+
+
+  
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
